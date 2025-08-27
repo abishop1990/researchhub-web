@@ -20,6 +20,7 @@ import {
   FileText,
   AlertCircle,
   Plus,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/utils/styles';
@@ -41,6 +42,41 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
     reorderDocuments,
     fetchList,
   } = useUserList(listId);
+
+  // Helper function to generate document links
+  const getDocumentLink = (
+    documentId: string | number | null | undefined,
+    documentType: string
+  ) => {
+    if (!documentId) return '#';
+
+    const idString = String(documentId);
+
+    switch (documentType) {
+      case 'paper':
+        return `/paper/${idString}`;
+      case 'post':
+        return `/post/${idString}`;
+      case 'note':
+        return `/notebook/${idString}`;
+      default:
+        return '#';
+    }
+  };
+
+  // Helper function to get document type icon
+  const getDocumentTypeIcon = (documentType: string) => {
+    switch (documentType) {
+      case 'paper':
+        return <FileText className="h-4 w-4 text-blue-600" />;
+      case 'post':
+        return <FileText className="h-4 w-4 text-green-600" />;
+      case 'note':
+        return <FileText className="h-4 w-4 text-purple-600" />;
+      default:
+        return <FileText className="h-4 w-4 text-gray-600" />;
+    }
+  };
 
   const getVisibilityIcon = () => {
     switch (list?.visibility) {
@@ -215,44 +251,62 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
           </div>
         ) : (
           <div className="space-y-3">
-            {list.documents.map((document, index) => (
-              <div
-                key={document.id}
-                className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500 w-8">{index + 1}</span>
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {document.content?.title || `Document ${document.id}`}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {(document.content as any)?.description ||
-                          (document.addedAt && !isNaN(new Date(document.addedAt).getTime())
-                            ? `Added ${new Date(document.addedAt).toLocaleDateString()}`
-                            : '')}
-                      </p>
+            {list.documents.map((document, index) => {
+              const documentLink = getDocumentLink(document.documentId, document.documentType);
+              const documentTitle = document.content?.title || `Document ${document.documentId}`;
+              const documentDescription =
+                (document.content as any)?.description ||
+                (document.addedAt && !isNaN(new Date(document.addedAt).getTime())
+                  ? `Added ${new Date(document.addedAt).toLocaleDateString()}`
+                  : '');
+
+              return (
+                <div
+                  key={document.id}
+                  className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500 w-8">{index + 1}</span>
+                      <div className="flex items-center gap-2">
+                        {getDocumentTypeIcon(document.documentType)}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={documentLink}
+                              className="font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                            >
+                              {documentTitle}
+                            </Link>
+                            <ExternalLink className="h-3 w-3 text-gray-400" />
+                          </div>
+                          {documentDescription && (
+                            <p className="text-sm text-gray-600 mt-1">{documentDescription}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <Badge variant="primary" className="text-xs">
-                    {document.documentType}
-                  </Badge>
-                  {list.isEditable && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeDocumentFromList(document.id, document.documentType)}
-                    >
-                      Remove
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Badge variant="primary" className="text-xs">
+                      {document.documentType}
+                    </Badge>
+                    {list.isEditable && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          removeDocumentFromList(String(document.documentId), document.documentType)
+                        }
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
