@@ -70,21 +70,22 @@ export const AddItemsToListModal = ({
   };
 
   // Mock data for demonstration - in a real app, this would come from a search API
+  // Using different IDs to avoid conflicts with existing documents
   const mockDocuments = [
     {
-      id: '1',
+      id: 99999,
       title: 'Sample Research Paper',
       type: 'paper' as const,
       description: 'A sample research paper for testing',
     },
     {
-      id: '2',
+      id: 88888,
       title: 'Interesting Post',
       type: 'post' as const,
       description: 'A sample post for testing',
     },
     {
-      id: '3',
+      id: 77777,
       title: 'My Notes',
       type: 'note' as const,
       description: 'Personal notes for testing',

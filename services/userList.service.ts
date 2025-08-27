@@ -57,8 +57,12 @@ export class UserListService {
         results: response.results.map(transformUserList),
       };
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to fetch user lists';
+      let errorMsg = 'Failed to fetch user lists';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -77,8 +81,12 @@ export class UserListService {
       const response = await ApiClient.get<any>(`${this.BASE_PATH}/${listId}/`);
       return transformUserListWithDocuments(response);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to fetch user list';
+      let errorMsg = 'Failed to fetch user list';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -105,8 +113,12 @@ export class UserListService {
       const response = await ApiClient.post<any>(`${this.BASE_PATH}/`, backendParams);
       return transformUserList(response);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to create user list';
+      let errorMsg = 'Failed to create user list';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -133,8 +145,12 @@ export class UserListService {
       const response = await ApiClient.patch<any>(`${this.BASE_PATH}/${listId}/`, backendParams);
       return transformUserList(response);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to update user list';
+      let errorMsg = 'Failed to update user list';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -152,8 +168,12 @@ export class UserListService {
     try {
       await ApiClient.delete(`${this.BASE_PATH}/${listId}/`);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to delete user list';
+      let errorMsg = 'Failed to delete user list';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -183,8 +203,38 @@ export class UserListService {
       );
       return transformListDocument(response);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to add document to list';
+      let errorMsg = 'Failed to add document to list';
+      if (error instanceof ApiError) {
+        // Try to extract the most meaningful error message
+        // The error.errors might be the raw response data from the backend
+        if (error.errors && typeof error.errors === 'object') {
+          // Check if it's the raw response structure
+          if (error.errors.detail && Array.isArray(error.errors.detail)) {
+            const detail = error.errors.detail[0];
+            errorMsg = (typeof detail === 'string' ? detail : String(detail)) || errorMsg;
+          } else if (error.errors.message) {
+            errorMsg = Array.isArray(error.errors.message)
+              ? String(error.errors.message[0])
+              : String(error.errors.message);
+          } else if (error.errors.error) {
+            // Handle the specific error format we're seeing
+            errorMsg = Array.isArray(error.errors.error)
+              ? String(error.errors.error[0])
+              : String(error.errors.error);
+          } else if (typeof error.errors === 'string') {
+            errorMsg = error.errors;
+          }
+        } else if (error.message && error.message !== 'Request failed') {
+          errorMsg = error.message;
+        }
+
+        // Add status code to error message for debugging
+        if (error.status) {
+          errorMsg = `[${error.status}] ${errorMsg}`;
+        }
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -210,8 +260,38 @@ export class UserListService {
 
       await ApiClient.post(`${this.BASE_PATH}/${params.listId}/remove_document/`, backendParams);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to remove document from list';
+      let errorMsg = 'Failed to remove document from list';
+      if (error instanceof ApiError) {
+        // Try to extract the most meaningful error message
+        // The error.errors might be the raw response data from the backend
+        if (error.errors && typeof error.errors === 'object') {
+          // Check if it's the raw response structure
+          if (error.errors.detail && Array.isArray(error.errors.detail)) {
+            const detail = error.errors.detail[0];
+            errorMsg = (typeof detail === 'string' ? detail : String(detail)) || errorMsg;
+          } else if (error.errors.message) {
+            errorMsg = Array.isArray(error.errors.message)
+              ? String(error.errors.message[0])
+              : String(error.errors.message);
+          } else if (error.errors.error) {
+            // Handle the specific error format we're seeing
+            errorMsg = Array.isArray(error.errors.error)
+              ? String(error.errors.error[0])
+              : String(error.errors.error);
+          } else if (typeof error.errors === 'string') {
+            errorMsg = error.errors;
+          }
+        } else if (error.message && error.message !== 'Request failed') {
+          errorMsg = error.message;
+        }
+
+        // Add status code to error message for debugging
+        if (error.status) {
+          errorMsg = `[${error.status}] ${errorMsg}`;
+        }
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -232,8 +312,12 @@ export class UserListService {
         permission: params.permissionLevel,
       });
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to add permission';
+      let errorMsg = 'Failed to add permission';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -253,8 +337,12 @@ export class UserListService {
         user_id: params.userId,
       });
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to remove permission';
+      let errorMsg = 'Failed to remove permission';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -275,8 +363,12 @@ export class UserListService {
         document_ids: documentIds,
       });
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to reorder list documents';
+      let errorMsg = 'Failed to reorder list documents';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }
@@ -295,8 +387,12 @@ export class UserListService {
       const response = await ApiClient.get<any>(`/api/shared/list/${shareToken}/`);
       return transformUserListWithDocuments(response);
     } catch (error) {
-      const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
-      const errorMsg = data?.detail || 'Failed to fetch shared list';
+      let errorMsg = 'Failed to fetch shared list';
+      if (error instanceof ApiError) {
+        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
       throw new UserListError(errorMsg);
     }
   }

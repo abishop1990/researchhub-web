@@ -338,6 +338,9 @@ export const WorkLineItems = ({
             </button>
           )}
 
+          {/* Render insights button if provided */}
+          {insightsButton}
+
           {/* Save to List Button */}
           <SaveToListButton
             ref={saveToListButtonRef}
@@ -347,9 +350,6 @@ export const WorkLineItems = ({
             variant="outlined"
             size="sm"
           />
-
-          {/* Render insights button if provided */}
-          {insightsButton}
 
           {/* More Actions Dropdown */}
           <BaseMenu
@@ -404,16 +404,6 @@ export const WorkLineItems = ({
             >
               <Flag className="h-4 w-4 mr-2" />
               <span>Flag Content</span>
-            </BaseMenuItem>
-
-            {/* Save to List in dropdown */}
-            <BaseMenuItem
-              onSelect={() => {
-                saveToListButtonRef.current?.openModal();
-              }}
-            >
-              <List className="h-4 w-4 mr-2" />
-              <span>Save to List</span>
             </BaseMenuItem>
           </BaseMenu>
         </div>

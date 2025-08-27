@@ -332,7 +332,7 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                         variant="outlined"
                         size="sm"
                         onClick={() =>
-                          removeDocumentFromList(String(document.documentId), document.documentType)
+                          removeDocumentFromList(document.documentId, document.documentType)
                         }
                         className="text-red-600 border-red-300 hover:text-red-700 hover:bg-red-50 hover:border-red-400"
                       >

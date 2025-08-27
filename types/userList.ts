@@ -87,17 +87,23 @@ export interface UserListApiResponse {
 
 export interface ListDocumentApiResponse {
   id: ID;
-  document_id: ID;
-  document_type: 'paper' | 'post' | 'note';
-  added_at: string;
-  added_by: ID;
-  order: number;
+  document_id?: ID;
+  document_type?: 'paper' | 'post' | 'note';
+  added_at?: string;
+  added_by?: ID;
+  order?: number;
   content?: any; // Raw content from API
   is_deleted?: boolean;
   deletion_date?: string;
   // Backend might return paper_id or u_doc_id instead of document_id
   paper_id?: ID;
   u_doc_id?: ID;
+  // Actual backend structure we're seeing
+  unified_document?: ID;
+  document_info?: {
+    document_type?: 'paper' | 'post' | 'note';
+    [key: string]: any;
+  };
 }
 
 export interface ListPermissionApiResponse {
@@ -193,17 +199,26 @@ export const transformUserList = createTransformer<UserListApiResponse, UserList
 });
 
 export const transformListDocument = createTransformer<ListDocumentApiResponse, ListDocument>(
-  (raw) => ({
-    id: raw.id,
-    documentId: raw.document_id || raw.paper_id || raw.u_doc_id, // Handle different field names
-    documentType: raw.document_type,
-    addedAt: raw.added_at,
-    addedBy: raw.added_by,
-    order: raw.order,
-    content: raw.content ? transformContent(raw.content, raw.document_type) : undefined,
-    isDeleted: raw.is_deleted || false,
-    deletionDate: raw.deletion_date || undefined,
-  })
+  (raw) => {
+    // Handle the actual backend structure we're seeing
+    const documentId = raw.unified_document || raw.document_id || raw.paper_id || raw.u_doc_id;
+    const documentInfo = raw.document_info || {};
+    const documentType = documentInfo.document_type || raw.document_type || 'paper'; // Default to 'paper'
+
+    return {
+      id: raw.id,
+      documentId: documentId,
+      documentType: documentType,
+      addedAt: raw.added_at || new Date().toISOString(), // Default to current time
+      addedBy: raw.added_by || 0, // Default to 0 if not provided
+      order: raw.order || 0, // Default to 0 if not provided
+      content: raw.content ? transformContent(raw.content, documentType) : undefined,
+      isDeleted: raw.is_deleted || false,
+      deletionDate: raw.deletion_date || undefined,
+      // Keep the raw data for debugging
+      raw: raw,
+    };
+  }
 );
 
 export const transformListPermission = createTransformer<ListPermissionApiResponse, ListPermission>(
