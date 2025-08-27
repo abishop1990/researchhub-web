@@ -44,7 +44,7 @@ export interface ButtonProps
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, tooltip, children, ...props }, ref) => {
+  ({ className, variant, size, tooltip, children, asChild, ...props }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const renderContent = () => {
@@ -54,6 +54,15 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
       return children;
     };
+
+    // If asChild is true, render children with button styles but without button element
+    if (asChild) {
+      return (
+        <span className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+          {renderContent()}
+        </span>
+      );
+    }
 
     if (tooltip) {
       return (

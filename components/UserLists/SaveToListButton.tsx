@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/Button';
 import { SaveToListModal } from './SaveToListModal';
 import { List } from 'lucide-react';
@@ -16,35 +16,48 @@ interface SaveToListButtonProps {
   children?: React.ReactNode;
 }
 
-export const SaveToListButton = ({
-  documentId,
-  documentType,
-  documentTitle,
-  variant = 'outlined',
-  size = 'sm',
-  className,
-  children,
-}: SaveToListButtonProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const SaveToListButtonComponent = forwardRef<{ openModal: () => void }, SaveToListButtonProps>(
+  (
+    {
+      documentId,
+      documentType,
+      documentTitle,
+      variant = 'outlined',
+      size = 'sm',
+      className,
+      children,
+    },
+    ref
+  ) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleClick = () => {
-    setIsModalOpen(true);
-  };
+    const handleClick = () => {
+      setIsModalOpen(true);
+    };
 
-  return (
-    <>
-      <Button onClick={handleClick} variant={variant} size={size} className={className}>
-        <List className="h-4 w-4 mr-2" />
-        {children || 'Save to List'}
-      </Button>
+    useImperativeHandle(ref, () => ({
+      openModal: () => setIsModalOpen(true),
+    }));
 
-      <SaveToListModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        documentId={documentId}
-        documentType={documentType}
-        documentTitle={documentTitle}
-      />
-    </>
-  );
-};
+    return (
+      <>
+        <Button onClick={handleClick} variant={variant} size={size} className={className}>
+          <List className="h-4 w-4 mr-2" />
+          {children || 'Save to List'}
+        </Button>
+
+        <SaveToListModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          documentId={documentId}
+          documentType={documentType}
+          documentTitle={documentTitle}
+        />
+      </>
+    );
+  }
+);
+
+SaveToListButtonComponent.displayName = 'SaveToListButton';
+
+export const SaveToListButton = SaveToListButtonComponent;

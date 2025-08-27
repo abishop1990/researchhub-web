@@ -90,6 +90,7 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.VERCEL_ENV === 'production',
   },
+
   turbopack: {
     rules: {
       '*.svg': {

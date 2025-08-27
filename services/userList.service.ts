@@ -34,22 +34,21 @@ export class UserListService {
   private static readonly BASE_PATH = '/api/lists';
 
   /**
-   * Fetches all lists for the current user
+   * Fetches all accessible lists (owned + shared + public)
    * @param params - Optional query parameters
    * @throws {UserListError} When the request fails
    */
   static async getUserLists(params?: {
-    visibility?: ListVisibility;
     page?: number;
-    pageSize?: number;
+    pageLimit?: number;
   }): Promise<UserListListResponse> {
     try {
       const queryParams = new URLSearchParams();
-      if (params?.visibility) queryParams.append('visibility', params.visibility);
       if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+      if (params?.pageLimit) queryParams.append('page_limit', params.pageLimit.toString());
 
-      const response = await ApiClient.get<any>(`${this.BASE_PATH}/?${queryParams.toString()}`);
+      const url = `${this.BASE_PATH}/?${queryParams.toString()}`;
+      const response = await ApiClient.get<any>(url);
 
       return {
         count: response.count || 0,
@@ -95,7 +94,15 @@ export class UserListService {
     }
 
     try {
-      const response = await ApiClient.post<any>(`${this.BASE_PATH}/`, params);
+      // Transform frontend params to match backend API spec
+      const backendParams = {
+        list_name: params.title,
+        description: params.description || '',
+        is_public: params.visibility === 'PUBLIC',
+        tags: params.tags || [],
+      };
+
+      const response = await ApiClient.post<any>(`${this.BASE_PATH}/`, backendParams);
       return transformUserList(response);
     } catch (error) {
       const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
@@ -116,7 +123,14 @@ export class UserListService {
     }
 
     try {
-      const response = await ApiClient.patch<any>(`${this.BASE_PATH}/${listId}/`, params);
+      // Transform frontend params to match backend API spec
+      const backendParams: any = {};
+      if (params.title) backendParams.list_name = params.title;
+      if (params.description !== undefined) backendParams.description = params.description;
+      if (params.visibility !== undefined) backendParams.is_public = params.visibility === 'PUBLIC';
+      if (params.tags !== undefined) backendParams.tags = params.tags;
+
+      const response = await ApiClient.patch<any>(`${this.BASE_PATH}/${listId}/`, backendParams);
       return transformUserList(response);
     } catch (error) {
       const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
@@ -155,12 +169,17 @@ export class UserListService {
     }
 
     try {
+      // Transform to match backend API spec
+      const backendParams: any = {};
+      if (params.documentType === 'paper') {
+        backendParams.paper_id = params.documentId;
+      } else {
+        backendParams.u_doc_id = params.documentId;
+      }
+
       const response = await ApiClient.post<any>(
         `${this.BASE_PATH}/${params.listId}/add_document/`,
-        {
-          document_id: params.documentId,
-          document_type: params.documentType,
-        }
+        backendParams
       );
       return transformListDocument(response);
     } catch (error) {
@@ -181,9 +200,15 @@ export class UserListService {
     }
 
     try {
-      await ApiClient.delete(
-        `${this.BASE_PATH}/${params.listId}/remove_document/${params.documentId}/`
-      );
+      // Transform to match backend API spec
+      const backendParams: any = {};
+      if (params.documentType === 'paper') {
+        backendParams.paper_id = params.documentId;
+      } else {
+        backendParams.u_doc_id = params.documentId;
+      }
+
+      await ApiClient.post(`${this.BASE_PATH}/${params.listId}/remove_document/`, backendParams);
     } catch (error) {
       const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
       const errorMsg = data?.detail || 'Failed to remove document from list';
@@ -204,7 +229,7 @@ export class UserListService {
     try {
       await ApiClient.post(`${this.BASE_PATH}/${params.listId}/add_permission/`, {
         user_id: params.userId,
-        permission_level: params.permissionLevel,
+        permission: params.permissionLevel,
       });
     } catch (error) {
       const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};
@@ -267,7 +292,7 @@ export class UserListService {
     }
 
     try {
-      const response = await ApiClient.get<any>(`/shared/list/${shareToken}/`);
+      const response = await ApiClient.get<any>(`/api/shared/list/${shareToken}/`);
       return transformUserListWithDocuments(response);
     } catch (error) {
       const { data = {} } = error instanceof ApiError ? JSON.parse(error.message) : {};

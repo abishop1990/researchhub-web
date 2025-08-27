@@ -119,11 +119,19 @@ export const UserListCard = ({ list, onUpdate, onDelete }: UserListCardProps) =>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              <span>{list.itemCount} items</span>
+              <span>
+                {list.itemCount || 0} {list.itemCount === 1 ? 'item' : 'items'}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
-              <span>{new Date(list.updatedAt).toLocaleDateString()}</span>
+              <span>
+                {list.updatedAt && !isNaN(new Date(list.updatedAt).getTime())
+                  ? new Date(list.updatedAt).toLocaleDateString()
+                  : list.createdAt && !isNaN(new Date(list.createdAt).getTime())
+                    ? `Created ${new Date(list.createdAt).toLocaleDateString()}`
+                    : ''}
+              </span>
             </div>
           </div>
 

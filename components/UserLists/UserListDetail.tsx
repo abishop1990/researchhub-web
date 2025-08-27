@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { ShareListModal } from './ShareListModal';
+import { AddItemsToListModal } from './AddItemsToListModal';
 import {
   ArrowLeft,
   Edit,
@@ -18,6 +19,7 @@ import {
   Calendar,
   FileText,
   AlertCircle,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/utils/styles';
@@ -29,8 +31,16 @@ interface UserListDetailProps {
 
 export const UserListDetail = ({ listId }: UserListDetailProps) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const { list, isLoading, error, updateList, removeDocumentFromList, reorderDocuments } =
-    useUserList(listId);
+  const [isAddItemsModalOpen, setIsAddItemsModalOpen] = useState(false);
+  const {
+    list,
+    isLoading,
+    error,
+    updateList,
+    removeDocumentFromList,
+    reorderDocuments,
+    fetchList,
+  } = useUserList(listId);
 
   const getVisibilityIcon = () => {
     switch (list?.visibility) {
@@ -122,11 +132,19 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
-                <span>{list.itemCount} items</span>
+                <span>
+                  {list.itemCount || 0} {list.itemCount === 1 ? 'item' : 'items'}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span>Updated {new Date(list.updatedAt).toLocaleDateString()}</span>
+                <span>
+                  {list.updatedAt && !isNaN(new Date(list.updatedAt).getTime())
+                    ? `Updated ${new Date(list.updatedAt).toLocaleDateString()}`
+                    : list.createdAt && !isNaN(new Date(list.createdAt).getTime())
+                      ? `Created ${new Date(list.createdAt).toLocaleDateString()}`
+                      : ''}
+                </span>
               </div>
               <Badge className={cn('text-xs', getVisibilityColor())}>
                 <div className="flex items-center gap-1">
@@ -140,6 +158,14 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
           <div className="flex gap-2">
             {list.isEditable && (
               <>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsAddItemsModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Items
+                </Button>
                 <Link href={`/lists/${list.id}/edit`}>
                   <Button variant="outlined">
                     <Edit className="h-4 w-4 mr-2" />
@@ -178,7 +204,14 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No items yet</h3>
             <p className="text-gray-600 mb-4">Start adding documents to your list</p>
-            <Button variant="outlined">Add Items</Button>
+            <Button
+              variant="outlined"
+              onClick={() => setIsAddItemsModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Items
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -196,7 +229,9 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                       </h3>
                       <p className="text-sm text-gray-600">
                         {(document.content as any)?.description ||
-                          `Added ${new Date(document.addedAt).toLocaleDateString()}`}
+                          (document.addedAt && !isNaN(new Date(document.addedAt).getTime())
+                            ? `Added ${new Date(document.addedAt).toLocaleDateString()}`
+                            : '')}
                       </p>
                     </div>
                   </div>
@@ -210,7 +245,7 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeDocumentFromList(document.id)}
+                      onClick={() => removeDocumentFromList(document.id, document.documentType)}
                     >
                       Remove
                     </Button>
@@ -228,6 +263,17 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
           list={list}
+        />
+      )}
+
+      {/* Add Items Modal */}
+      {list && (
+        <AddItemsToListModal
+          isOpen={isAddItemsModalOpen}
+          onClose={() => setIsAddItemsModalOpen(false)}
+          listId={list.id?.toString() || ''}
+          listTitle={list.title}
+          onItemAdded={fetchList}
         />
       )}
     </div>

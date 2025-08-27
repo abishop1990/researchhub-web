@@ -24,6 +24,8 @@ export const useCollaboration = ({
   >(() => ({ state: enabled ? 'loading' : 'idle', provider: null, yDoc: null }));
   useEffect(() => {
     let isMounted = true;
+    let currentProvider: TiptapCollabProvider | null = null;
+
     // fetch data
     const dataFetch = async () => {
       try {
@@ -61,7 +63,8 @@ export const useCollaboration = ({
 
         const yDoc = new YDoc();
         // set state when the data received
-        setProvider({ state: 'loaded', provider: getProvider({ docId, token, yDoc }), yDoc });
+        currentProvider = getProvider({ docId, token, yDoc });
+        setProvider({ state: 'loaded', provider: currentProvider, yDoc });
       } catch (e) {
         if (e instanceof Error) {
           console.error(e.message);
@@ -80,6 +83,10 @@ export const useCollaboration = ({
     }
     return () => {
       isMounted = false;
+      // Clean up provider when component unmounts
+      if (currentProvider) {
+        currentProvider.destroy();
+      }
     };
   }, [docId, enabled]);
 

@@ -56,17 +56,19 @@ export interface UserListWithDocuments extends UserList {
 // API Response interfaces
 export interface UserListApiResponse {
   id: ID;
-  title: string;
+  list_name: string; // Backend uses list_name instead of title
   description: string | null;
-  visibility: ListVisibility;
-  created_by: ID;
-  created_at: string;
-  updated_at: string;
-  item_count: number;
-  is_editable: boolean;
-  is_shared: boolean;
-  shared_with: ID[] | null;
-  tags: string[] | null;
+  is_public: boolean; // Backend uses is_public instead of visibility
+  created_by_username?: string; // Backend might return this
+  created_date?: string; // Backend might return this instead of created_at
+  updated_at?: string; // Backend might return this
+  item_count?: number; // Backend might return document_count instead
+  document_count?: number; // Backend actually returns this
+  is_editable?: boolean;
+  is_shared?: boolean;
+  shared_with?: ID[] | null;
+  tags?: string[] | null;
+  share_url?: string | null; // Backend returns this
 }
 
 export interface ListDocumentApiResponse {
@@ -79,6 +81,9 @@ export interface ListDocumentApiResponse {
   content?: any; // Raw content from API
   is_deleted?: boolean;
   deletion_date?: string;
+  // Backend might return paper_id or u_doc_id instead of document_id
+  paper_id?: ID;
+  u_doc_id?: ID;
 }
 
 export interface ListPermissionApiResponse {
@@ -121,6 +126,7 @@ export interface AddDocumentToListParams {
 export interface RemoveDocumentFromListParams {
   listId: ID;
   documentId: ID;
+  documentType: 'paper' | 'post' | 'note';
 }
 
 export interface AddPermissionParams {
@@ -148,15 +154,15 @@ export type TransformedListPermission = ListPermission & BaseTransformed;
 // Transformers
 export const transformUserList = createTransformer<UserListApiResponse, UserList>((raw) => ({
   id: raw.id,
-  title: raw.title,
+  title: raw.list_name, // Transform list_name to title
   description: raw.description || undefined,
-  visibility: raw.visibility,
-  createdBy: raw.created_by,
-  createdAt: raw.created_at,
-  updatedAt: raw.updated_at,
-  itemCount: raw.item_count,
-  isEditable: raw.is_editable,
-  isShared: raw.is_shared,
+  visibility: raw.is_public ? 'PUBLIC' : 'PRIVATE', // Transform is_public to visibility
+  createdBy: raw.created_by_username || 'Unknown', // Use username as fallback
+  createdAt: raw.created_date || raw.updated_at || new Date().toISOString(), // Use created_date or fallback
+  updatedAt: raw.updated_at || raw.created_date || new Date().toISOString(), // Use updated_at or fallback
+  itemCount: raw.document_count || raw.item_count || 0, // Use document_count or fallback
+  isEditable: raw.is_editable || false, // Provide fallback
+  isShared: raw.is_shared || false, // Provide fallback
   sharedWith: raw.shared_with || undefined,
   tags: raw.tags || undefined,
 }));
@@ -164,7 +170,7 @@ export const transformUserList = createTransformer<UserListApiResponse, UserList
 export const transformListDocument = createTransformer<ListDocumentApiResponse, ListDocument>(
   (raw) => ({
     id: raw.id,
-    documentId: raw.document_id,
+    documentId: raw.document_id || raw.paper_id || raw.u_doc_id, // Handle different field names
     documentType: raw.document_type,
     addedAt: raw.added_at,
     addedBy: raw.added_by,

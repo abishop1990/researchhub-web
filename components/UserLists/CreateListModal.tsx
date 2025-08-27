@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/form/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/form/Input';
 import { Textarea } from '@/components/ui/form/Textarea';
+import { Plus, X } from 'lucide-react';
 import type { ListVisibility } from '@/types/userList';
 
 interface CreateListModalProps {
@@ -14,6 +15,7 @@ interface CreateListModalProps {
     title: string;
     description?: string;
     visibility: ListVisibility;
+    tags?: string[];
   }) => Promise<void>;
 }
 
@@ -21,7 +23,27 @@ export const CreateListModal = ({ isOpen, onClose, onSubmit }: CreateListModalPr
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<ListVisibility>('PRIVATE');
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAddTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +56,15 @@ export const CreateListModal = ({ isOpen, onClose, onSubmit }: CreateListModalPr
         title: title.trim(),
         description: description.trim() || undefined,
         visibility,
+        tags: tags.length > 0 ? tags : undefined,
       });
 
       // Reset form
       setTitle('');
       setDescription('');
       setVisibility('PRIVATE');
+      setTags([]);
+      setNewTag('');
     } catch (error) {
       console.error('Failed to create list:', error);
     } finally {
@@ -99,6 +124,52 @@ export const CreateListModal = ({ isOpen, onClose, onSubmit }: CreateListModalPr
             <option value="SHARED">Shared - Only people you invite can see this list</option>
             <option value="PUBLIC">Public - Anyone can see this list</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Tags</label>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Add a tag"
+                className="flex-1"
+                disabled={isSubmitting}
+              />
+              <Button
+                type="button"
+                onClick={handleAddTag}
+                disabled={!newTag.trim() || isSubmitting}
+                variant="outlined"
+                size="sm"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, index) => (
+                  <div
+                    key={index}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm"
+                  >
+                    <span>{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="text-primary-600 hover:text-primary-800"
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4">

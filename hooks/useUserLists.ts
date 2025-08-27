@@ -40,40 +40,37 @@ export const useUserLists = (initialVisibility?: ListVisibility) => {
   });
 
   const [visibility, setVisibility] = useState<ListVisibility | undefined>(initialVisibility);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  const fetchLists = useCallback(
-    async (page = 1, append = false) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  const fetchLists = async (page = 1, append = false) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-      try {
-        const response = await UserListService.getUserLists({
-          visibility,
-          page,
-          pageSize: 20,
-        });
+    try {
+      const response = await UserListService.getUserLists({
+        page,
+        pageLimit: 20,
+      });
 
-        setState((prev) => ({
-          ...prev,
-          lists: append ? [...prev.lists, ...response.results] : response.results,
-          hasMore: !!response.next,
-          page,
-          isLoading: false,
-        }));
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: error instanceof Error ? error : new Error('Failed to fetch lists'),
-          isLoading: false,
-        }));
-      }
-    },
-    [visibility]
-  );
+      setState((prev) => ({
+        ...prev,
+        lists: append ? [...prev.lists, ...response.results] : response.results,
+        hasMore: !!response.next,
+        page,
+        isLoading: false,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error : new Error('Failed to fetch lists'),
+        isLoading: false,
+      }));
+    }
+  };
 
   const loadMore = useCallback(() => {
     if (!state.hasMore || state.isLoading) return;
     fetchLists(state.page + 1, true);
-  }, [state.hasMore, state.isLoading, state.page, fetchLists]);
+  }, [state.hasMore, state.isLoading, state.page]);
 
   const createList = useCallback(async (params: CreateUserListParams) => {
     try {
@@ -195,10 +192,14 @@ export const useUserLists = (initialVisibility?: ListVisibility) => {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    fetchLists(1, false);
-  }, [fetchLists]);
+  // Initialize data loading on first call if not already done
+  if (!hasInitialized) {
+    setHasInitialized(true);
+    // Use setTimeout to avoid calling setState during render
+    setTimeout(() => {
+      fetchLists(1, false);
+    }, 0);
+  }
 
   return {
     // State
@@ -306,11 +307,11 @@ export const useUserList = (listId: string | null) => {
   );
 
   const removeDocumentFromList = useCallback(
-    async (documentId: ID) => {
+    async (documentId: ID, documentType: 'paper' | 'post' | 'note') => {
       if (!listId) return;
 
       try {
-        await UserListService.removeDocumentFromList({ listId, documentId });
+        await UserListService.removeDocumentFromList({ listId, documentId, documentType });
         setState((prev) => ({
           ...prev,
           list: prev.list

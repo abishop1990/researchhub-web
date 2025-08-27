@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   ArrowUp,
   Flag,
@@ -10,6 +10,7 @@ import {
   Octagon,
   Share2,
   CheckCircle,
+  List,
 } from 'lucide-react';
 import { Work } from '@/types/work';
 import { AuthorList } from '@/components/ui/AuthorList';
@@ -32,6 +33,7 @@ import { WorkMetadata } from '@/services/metadata.service';
 import { useShareModalContext } from '@/contexts/ShareContext';
 import { BaseMenu, BaseMenuItem } from '@/components/ui/form/BaseMenu';
 import { useCompleteFundraise } from '@/hooks/useFundraise';
+import { SaveToListButton } from '@/components/UserLists/SaveToListButton';
 
 interface WorkLineItemsProps {
   work: Work;
@@ -65,6 +67,7 @@ export const WorkLineItems = ({
   const { user } = useUser();
   const [isWorkEditModalOpen, setIsWorkEditModalOpen] = useState(false);
   const { showShareModal } = useShareModalContext();
+  const saveToListButtonRef = useRef<{ openModal: () => void }>(null);
 
   const {
     data: userVotes,
@@ -335,6 +338,16 @@ export const WorkLineItems = ({
             </button>
           )}
 
+          {/* Save to List Button */}
+          <SaveToListButton
+            ref={saveToListButtonRef}
+            documentId={work.id}
+            documentType={work.contentType === 'paper' ? 'paper' : 'post'}
+            documentTitle={work.title}
+            variant="outlined"
+            size="sm"
+          />
+
           {/* Render insights button if provided */}
           {insightsButton}
 
@@ -391,6 +404,16 @@ export const WorkLineItems = ({
             >
               <Flag className="h-4 w-4 mr-2" />
               <span>Flag Content</span>
+            </BaseMenuItem>
+
+            {/* Save to List in dropdown */}
+            <BaseMenuItem
+              onSelect={() => {
+                saveToListButtonRef.current?.openModal();
+              }}
+            >
+              <List className="h-4 w-4 mr-2" />
+              <span>Save to List</span>
             </BaseMenuItem>
           </BaseMenu>
         </div>
