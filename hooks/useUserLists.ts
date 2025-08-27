@@ -352,6 +352,26 @@ export const useUserList = (listId: string | null) => {
     [listId, fetchList]
   );
 
+  const deleteList = useCallback(async () => {
+    if (!listId) return;
+
+    try {
+      await UserListService.deleteUserList(listId);
+      // Clear the list from state since it's been deleted
+      setState({
+        list: null,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error : new Error('Failed to delete list'),
+      }));
+      throw error;
+    }
+  }, [listId]);
+
   // Load list when listId changes
   useEffect(() => {
     fetchList();
@@ -369,5 +389,6 @@ export const useUserList = (listId: string | null) => {
     addDocumentToList,
     removeDocumentFromList,
     reorderDocuments,
+    deleteList,
   };
 };

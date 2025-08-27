@@ -42,6 +42,13 @@ export interface UserList {
   createdAt: string;
   updatedAt: string;
   itemCount: number;
+  // New permission fields
+  canEdit: boolean;
+  canDelete: boolean;
+  canAddDocuments: boolean;
+  currentUserPermission: 'OWNER' | 'ADMIN' | 'EDIT' | 'VIEW' | null;
+  isOwner: boolean;
+  // Legacy fields (keep for backward compatibility)
   isEditable: boolean;
   isShared: boolean;
   sharedWith?: ID[];
@@ -64,6 +71,13 @@ export interface UserListApiResponse {
   updated_at?: string; // Backend might return this
   item_count?: number; // Backend might return document_count instead
   document_count?: number; // Backend actually returns this
+  // New permission fields
+  can_edit?: boolean;
+  can_delete?: boolean;
+  can_add_documents?: boolean;
+  current_user_permission?: 'OWNER' | 'ADMIN' | 'EDIT' | 'VIEW' | null;
+  is_owner?: boolean;
+  // Legacy fields (keep for backward compatibility)
   is_editable?: boolean;
   is_shared?: boolean;
   shared_with?: ID[] | null;
@@ -152,20 +166,31 @@ export type TransformedListDocument = ListDocument & BaseTransformed;
 export type TransformedListPermission = ListPermission & BaseTransformed;
 
 // Transformers
-export const transformUserList = createTransformer<UserListApiResponse, UserList>((raw) => ({
-  id: raw.id,
-  title: raw.list_name, // Transform list_name to title
-  description: raw.description || undefined,
-  visibility: raw.is_public ? 'PUBLIC' : 'PRIVATE', // Transform is_public to visibility
-  createdBy: raw.created_by_username || 'Unknown', // Use username as fallback
-  createdAt: raw.created_date || raw.updated_at || new Date().toISOString(), // Use created_date or fallback
-  updatedAt: raw.updated_at || raw.created_date || new Date().toISOString(), // Use updated_at or fallback
-  itemCount: raw.document_count || raw.item_count || 0, // Use document_count or fallback
-  isEditable: raw.is_editable || false, // Provide fallback
-  isShared: raw.is_shared || false, // Provide fallback
-  sharedWith: raw.shared_with || undefined,
-  tags: raw.tags || undefined,
-}));
+export const transformUserList = createTransformer<UserListApiResponse, UserList>((raw) => {
+  const transformed: UserList = {
+    id: raw.id,
+    title: raw.list_name, // Transform list_name to title
+    description: raw.description || undefined,
+    visibility: raw.is_public ? 'PUBLIC' : 'PRIVATE', // Transform is_public to visibility
+    createdBy: raw.created_by_username || 'Unknown', // Use username as fallback
+    createdAt: raw.created_date || raw.updated_at || new Date().toISOString(), // Use created_date or fallback
+    updatedAt: raw.updated_at || raw.created_date || new Date().toISOString(), // Use updated_at or fallback
+    itemCount: raw.document_count || raw.item_count || 0, // Use document_count or fallback
+    // New permission fields
+    canEdit: raw.can_edit ?? raw.is_editable ?? true, // Use new field, fallback to legacy, then default to true
+    canDelete: raw.can_delete ?? false,
+    canAddDocuments: raw.can_add_documents ?? raw.is_editable ?? true, // Use new field, fallback to legacy, then default to true
+    currentUserPermission: raw.current_user_permission ?? null,
+    isOwner: raw.is_owner ?? false,
+    // Legacy fields (keep for backward compatibility)
+    isEditable: raw.can_edit ?? raw.is_editable ?? true, // Map to new field for backward compatibility
+    isShared: raw.is_shared || false, // Provide fallback
+    sharedWith: raw.shared_with || undefined,
+    tags: raw.tags || undefined,
+  };
+
+  return transformed;
+});
 
 export const transformListDocument = createTransformer<ListDocumentApiResponse, ListDocument>(
   (raw) => ({

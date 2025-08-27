@@ -152,7 +152,7 @@ export const UserListCard = ({ list, onUpdate, onDelete }: UserListCardProps) =>
               View List
             </Button>
           </Link>
-          {list.isEditable && (
+          {list.canEdit && (
             <Link href={`/lists/${list.id}/edit`}>
               <Button variant="outlined" size="sm">
                 Edit

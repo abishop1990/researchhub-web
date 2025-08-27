@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUserList } from '@/hooks/useUserLists';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/form/Modal';
 import { ShareListModal } from './ShareListModal';
 import { AddItemsToListModal } from './AddItemsToListModal';
 import {
@@ -21,6 +23,7 @@ import {
   AlertCircle,
   Plus,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/utils/styles';
@@ -31,8 +34,11 @@ interface UserListDetailProps {
 }
 
 export const UserListDetail = ({ listId }: UserListDetailProps) => {
+  const router = useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAddItemsModalOpen, setIsAddItemsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const {
     list,
     isLoading,
@@ -41,6 +47,7 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
     removeDocumentFromList,
     reorderDocuments,
     fetchList,
+    deleteList,
   } = useUserList(listId);
 
   // Helper function to generate document links
@@ -188,11 +195,16 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                   {getVisibilityLabel()}
                 </div>
               </Badge>
+              {list.currentUserPermission && (
+                <Badge className="text-xs bg-blue-100 text-blue-800">
+                  {list.currentUserPermission}
+                </Badge>
+              )}
             </div>
           </div>
 
           <div className="flex gap-2">
-            {list.isEditable && (
+            {list.canEdit && (
               <>
                 <Button
                   variant="outlined"
@@ -214,6 +226,17 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                 </Button>
               </>
             )}
+            {list.canDelete && (
+              <Button
+                variant="outlined"
+                className="text-red-600 border-red-300 hover:text-red-700 hover:bg-red-50 hover:border-red-400"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -233,7 +256,19 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
 
       {/* Documents */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
+          {list.canAddDocuments && (
+            <Button
+              variant="outlined"
+              onClick={() => setIsAddItemsModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Items
+            </Button>
+          )}
+        </div>
 
         {list.documents.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -292,14 +327,16 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                     <Badge variant="primary" className="text-xs">
                       {document.documentType}
                     </Badge>
-                    {list.isEditable && (
+                    {list.canEdit && (
                       <Button
-                        variant="ghost"
+                        variant="outlined"
                         size="sm"
                         onClick={() =>
                           removeDocumentFromList(String(document.documentId), document.documentType)
                         }
+                        className="text-red-600 border-red-300 hover:text-red-700 hover:bg-red-50 hover:border-red-400"
                       >
+                        <Trash2 className="h-4 w-4 mr-1" />
                         Remove
                       </Button>
                     )}
@@ -329,6 +366,50 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
           listTitle={list.title}
           onItemAdded={fetchList}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {list && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+          title="Delete List"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete "{list.title}"? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outlined"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await deleteList();
+                    // Navigate back to lists page after successful deletion
+                    router.push('/lists');
+                  } catch (error) {
+                    console.error('Failed to delete list:', error);
+                    alert('Failed to delete list. Please try again.');
+                  } finally {
+                    setIsDeleting(false);
+                    setIsDeleteModalOpen(false);
+                  }
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

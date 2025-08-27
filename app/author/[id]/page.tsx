@@ -18,6 +18,7 @@ import AuthorProfile from './components/AuthorProfile';
 import { useAuthorPublications } from '@/hooks/usePublications';
 import { transformPublicationToFeedEntry } from '@/types/publication';
 import PinnedFundraise from './components/PinnedFundraise';
+import UserLists from './components/UserLists';
 
 function toNumberOrNull(value: any): number | null {
   if (value === '' || value === null || value === undefined) return null;
@@ -92,17 +93,32 @@ const TAB_TO_CONTRIBUTION_TYPE: Record<string, ContributionType> = {
 
 function AuthorTabs({ authorId, userId }: { authorId: number; userId?: number }) {
   const [isPending, startTransition] = useTransition();
+  const { user: currentUser } = useUser();
+  const isOwnProfile = currentUser?.authorProfile?.id === authorId;
+
   const tabs = [
     { id: 'contributions', label: 'Overview' },
     { id: 'publications', label: 'Publications' },
     { id: 'peer-reviews', label: 'Peer Reviews' },
     { id: 'comments', label: 'Comments' },
     { id: 'bounties', label: 'Bounties' },
+    // Only show Lists tab for own profile
+    ...(isOwnProfile ? [{ id: 'lists', label: 'Lists' }] : []),
   ];
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'contributions';
+  let currentTab = searchParams.get('tab') || 'contributions';
+
+  // If someone tries to access lists tab on someone else's profile, redirect to contributions
+  if (currentTab === 'lists' && !isOwnProfile) {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams);
+      params.set('tab', 'contributions');
+      router.replace(`/author/${authorId}?${params.toString()}`, { scroll: false });
+    });
+    currentTab = 'contributions';
+  }
 
   // Get the contribution type based on the current tab
   const contributionType = TAB_TO_CONTRIBUTION_TYPE[currentTab] || 'ALL';
@@ -133,12 +149,25 @@ function AuthorTabs({ authorId, userId }: { authorId: number; userId?: number })
   const handleTabChange = (tabId: string) => {
     startTransition(() => {
       const params = new URLSearchParams(searchParams);
-      params.set('tab', tabId);
+      // If trying to access lists tab on someone else's profile, redirect to contributions
+      if (tabId === 'lists' && !isOwnProfile) {
+        params.set('tab', 'contributions');
+      } else {
+        params.set('tab', tabId);
+      }
       router.replace(`/author/${authorId}?${params.toString()}`, { scroll: false });
     });
   };
 
   const renderTabContent = () => {
+    if (currentTab === 'lists') {
+      // Only render lists content if it's the user's own profile
+      if (!isOwnProfile) {
+        return <div>Lists are only visible to the profile owner.</div>;
+      }
+      return <UserLists authorId={authorId} isOwnProfile={isOwnProfile} />;
+    }
+
     if (currentTab === 'publications') {
       if (publicationsError) {
         return <div>Error: {publicationsError.message}</div>;

@@ -43,7 +43,7 @@ export default function EditListPage() {
     );
   }
 
-  if (!list.isEditable) {
+  if (!list.canEdit) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="error">

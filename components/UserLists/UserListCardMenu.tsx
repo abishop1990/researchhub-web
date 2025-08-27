@@ -57,14 +57,14 @@ export const UserListCardMenu = ({ list, onUpdate, onDelete, onClose }: UserList
           Copy Link
         </BaseMenuItem>
 
-        {list.isEditable && (
+        {list.canEdit && (
           <BaseMenuItem onClick={() => window.open(`/lists/${list.id}/share`, '_blank')}>
             <Share className="mr-2 h-4 w-4" />
             Share List
           </BaseMenuItem>
         )}
 
-        {list.isEditable && (
+        {list.canDelete && (
           <>
             <div className="h-px bg-gray-200 my-1" />
             <BaseMenuItem
