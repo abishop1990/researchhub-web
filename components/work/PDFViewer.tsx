@@ -76,7 +76,9 @@ const PDFViewer = ({ url, onReady, onError }: PDFViewerProps) => {
   useEffect(() => {
     if (WORKER_CONFIGURED_FLAG.current) return;
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjsLib as any).version}/pdf.worker.min.js`;
+    const workerSrc = `https://unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.js`;
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
     WORKER_CONFIGURED_FLAG.current = true;
   }, []);
 

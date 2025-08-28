@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/form/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/form/Input';
 import { Alert } from '@/components/ui/Alert';
-import { AlertCircle, Copy, Check, UserPlus, X } from 'lucide-react';
+import { Copy, Check, UserPlus, X } from 'lucide-react';
 import { useUserLists } from '@/hooks/useUserLists';
 import { UserListService } from '@/services/userList.service';
 import type {
@@ -91,7 +91,6 @@ export const ShareListModal = ({ isOpen, onClose, list }: ShareListModalProps) =
 
         {error && (
           <Alert variant="error">
-            <AlertCircle className="h-4 w-4" />
             <div className="text-sm font-medium">{error}</div>
           </Alert>
         )}

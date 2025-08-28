@@ -75,11 +75,19 @@ export class SearchService {
       params.append('limit', limit.toString());
     }
 
-    const response = await ApiClient.get<any[]>(
-      `${this.BASE_PATH}/search/suggest/?${params.toString()}`
-    );
+    // Call our Next.js API route directly instead of going through ApiClient
+    const url = `/api/search/suggest/?${params.toString()}`;
 
-    return response.map(transformSearchSuggestion);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.map(transformSearchSuggestion);
+    } catch (error) {
+      throw error;
+    }
   }
 
   static async suggestPeople(query: string): Promise<AuthorSuggestion[]> {

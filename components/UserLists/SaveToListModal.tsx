@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/form/Modal';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
-import { AlertCircle, Plus, Check } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import { useUserLists } from '@/hooks/useUserLists';
 import { UserListService } from '@/services/userList.service';
 import type { UserList, AddDocumentToListParams } from '@/types/userList';
@@ -26,6 +26,7 @@ export const SaveToListModal = ({
   documentTitle,
 }: SaveToListModalProps) => {
   const [selectedListId, setSelectedListId] = useState<string>('');
+  const [comment, setComment] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -43,6 +44,7 @@ export const SaveToListModal = ({
         listId: selectedListId,
         documentId,
         documentType,
+        comment: comment.trim() || undefined,
       };
 
       await UserListService.addDocumentToList(params);
@@ -78,6 +80,7 @@ export const SaveToListModal = ({
     if (!isSubmitting) {
       onClose();
       setSelectedListId('');
+      setComment('');
       setError(null);
       setSuccess(false);
     }
@@ -95,7 +98,6 @@ export const SaveToListModal = ({
 
         {error && (
           <Alert variant="error">
-            <AlertCircle className="h-4 w-4" />
             <div className="text-sm font-medium">{error}</div>
           </Alert>
         )}
@@ -126,6 +128,21 @@ export const SaveToListModal = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="comment" className="block text-sm font-semibold text-gray-700 mb-1">
+              Add a comment (optional)
+            </label>
+            <textarea
+              id="comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Add your thoughts about this document..."
+              disabled={isSubmitting}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-sm resize-none"
+            />
           </div>
 
           {lists.length === 0 && !isLoading && (

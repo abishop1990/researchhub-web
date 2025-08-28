@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/form/Input';
 import { Textarea } from '@/components/ui/form/Textarea';
 import { Alert } from '@/components/ui/Alert';
-import { AlertCircle, X, Plus } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import type { UserList, UpdateUserListParams, ListVisibility } from '@/types/userList';
 
 interface EditListFormProps {
@@ -65,7 +65,6 @@ export const EditListForm = ({ list, onSave }: EditListFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <Alert variant="error">
-          <AlertCircle className="h-4 w-4" />
           <div className="text-sm font-medium">{error}</div>
         </Alert>
       )}

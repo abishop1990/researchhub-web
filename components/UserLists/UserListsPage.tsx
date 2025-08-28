@@ -8,7 +8,7 @@ import { UserListFilters } from './UserListFilters';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Alert } from '@/components/ui/Alert';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { ListVisibility, UpdateUserListParams } from '@/types/userList';
 
 interface UserListsPageProps {
@@ -60,7 +60,6 @@ export const UserListsPage = ({ initialVisibility }: UserListsPageProps) => {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="error">
-          <AlertCircle className="h-4 w-4" />
           <div className="text-sm font-medium">{error.message || 'Failed to load user lists'}</div>
         </Alert>
       </div>

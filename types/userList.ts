@@ -26,11 +26,14 @@ export interface ListDocument {
   addedAt: string;
   addedBy: ID;
   order: number;
+  comment?: string; // User's comment on this list item
   // Document content for display
   content?: Paper | Work | Note;
   // Handle deleted documents
   isDeleted?: boolean;
   deletionDate?: string;
+  // Raw data from API for debugging/fallback
+  raw?: any;
 }
 
 export interface UserList {
@@ -92,6 +95,7 @@ export interface ListDocumentApiResponse {
   added_at?: string;
   added_by?: ID;
   order?: number;
+  comment?: string; // Backend comment field
   content?: any; // Raw content from API
   is_deleted?: boolean;
   deletion_date?: string;
@@ -141,6 +145,7 @@ export interface AddDocumentToListParams {
   listId: ID;
   documentId: ID;
   documentType: 'paper' | 'post' | 'note';
+  comment?: string; // Optional comment when adding document to list
 }
 
 export interface RemoveDocumentFromListParams {
@@ -212,6 +217,7 @@ export const transformListDocument = createTransformer<ListDocumentApiResponse, 
       addedAt: raw.added_at || new Date().toISOString(), // Default to current time
       addedBy: raw.added_by || 0, // Default to 0 if not provided
       order: raw.order || 0, // Default to 0 if not provided
+      comment: raw.comment || undefined, // Transform comment field
       content: raw.content ? transformContent(raw.content, documentType) : undefined,
       isDeleted: raw.is_deleted || false,
       deletionDate: raw.deletion_date || undefined,

@@ -42,35 +42,50 @@ export const useUserLists = (initialVisibility?: ListVisibility) => {
   const [visibility, setVisibility] = useState<ListVisibility | undefined>(initialVisibility);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  const fetchLists = async (page = 1, append = false) => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  const fetchLists = useCallback(
+    async (page = 1, append = false) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      const response = await UserListService.getUserLists({
-        page,
-        pageLimit: 20,
-      });
+      try {
+        const response = await UserListService.getUserLists({
+          page,
+          pageLimit: 20,
+          visibility,
+        });
 
-      setState((prev) => ({
-        ...prev,
-        lists: append ? [...prev.lists, ...response.results] : response.results,
-        hasMore: !!response.next,
-        page,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        error: error instanceof Error ? error : new Error('Failed to fetch lists'),
-        isLoading: false,
-      }));
-    }
-  };
+        // Apply client-side filtering as fallback if backend doesn't support visibility
+        let filteredResults = response.results;
+        if (visibility && response.results.length > 0) {
+          // Check if backend filtering worked by looking at the first result
+          const firstResult = response.results[0];
+          if (firstResult.visibility !== visibility) {
+            // Backend filtering didn't work, apply client-side filtering
+            filteredResults = response.results.filter((list) => list.visibility === visibility);
+          }
+        }
+
+        setState((prev) => ({
+          ...prev,
+          lists: append ? [...prev.lists, ...filteredResults] : filteredResults,
+          hasMore: !!response.next,
+          page,
+          isLoading: false,
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error : new Error('Failed to fetch lists'),
+          isLoading: false,
+        }));
+      }
+    },
+    [visibility]
+  );
 
   const loadMore = useCallback(() => {
     if (!state.hasMore || state.isLoading) return;
     fetchLists(state.page + 1, true);
-  }, [state.hasMore, state.isLoading, state.page]);
+  }, [state.hasMore, state.isLoading, state.page, fetchLists]);
 
   const createList = useCallback(async (params: CreateUserListParams) => {
     try {
@@ -192,14 +207,13 @@ export const useUserLists = (initialVisibility?: ListVisibility) => {
     }
   }, []);
 
-  // Initialize data loading on first call if not already done
-  if (!hasInitialized) {
-    setHasInitialized(true);
-    // Use setTimeout to avoid calling setState during render
-    setTimeout(() => {
-      fetchLists(1, false);
-    }, 0);
-  }
+  // Initialize data loading and handle visibility changes
+  useEffect(() => {
+    if (!hasInitialized) {
+      setHasInitialized(true);
+    }
+    fetchLists(1, false);
+  }, [hasInitialized, visibility]); // Only depend on visibility, not fetchLists
 
   return {
     // State
@@ -333,25 +347,6 @@ export const useUserList = (listId: string | null) => {
     [listId]
   );
 
-  const reorderDocuments = useCallback(
-    async (documentIds: ID[]) => {
-      if (!listId) return;
-
-      try {
-        await UserListService.reorderListDocuments(listId, documentIds);
-        // Refetch the list to get the updated order
-        await fetchList();
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: error instanceof Error ? error : new Error('Failed to reorder documents'),
-        }));
-        throw error;
-      }
-    },
-    [listId, fetchList]
-  );
-
   const deleteList = useCallback(async () => {
     if (!listId) return;
 
@@ -388,7 +383,6 @@ export const useUserList = (listId: string | null) => {
     updateList,
     addDocumentToList,
     removeDocumentFromList,
-    reorderDocuments,
     deleteList,
   };
 };

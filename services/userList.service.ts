@@ -41,11 +41,13 @@ export class UserListService {
   static async getUserLists(params?: {
     page?: number;
     pageLimit?: number;
+    visibility?: ListVisibility;
   }): Promise<UserListListResponse> {
     try {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.pageLimit) queryParams.append('page_limit', params.pageLimit.toString());
+      if (params?.visibility) queryParams.append('visibility', params.visibility);
 
       const url = `${this.BASE_PATH}/?${queryParams.toString()}`;
       const response = await ApiClient.get<any>(url);
@@ -196,6 +198,9 @@ export class UserListService {
       } else {
         backendParams.u_doc_id = params.documentId;
       }
+      if (params.comment) {
+        backendParams.comment = params.comment;
+      }
 
       const response = await ApiClient.post<any>(
         `${this.BASE_PATH}/${params.listId}/add_document/`,
@@ -205,32 +210,34 @@ export class UserListService {
     } catch (error) {
       let errorMsg = 'Failed to add document to list';
       if (error instanceof ApiError) {
-        // Try to extract the most meaningful error message
-        // The error.errors might be the raw response data from the backend
+        // Try to extract the most meaningful error message from backend response
         if (error.errors && typeof error.errors === 'object') {
           // Check if it's the raw response structure
           if (error.errors.detail && Array.isArray(error.errors.detail)) {
             const detail = error.errors.detail[0];
-            errorMsg = (typeof detail === 'string' ? detail : String(detail)) || errorMsg;
+            if (detail && typeof detail === 'string') {
+              errorMsg = detail;
+            }
           } else if (error.errors.message) {
-            errorMsg = Array.isArray(error.errors.message)
-              ? String(error.errors.message[0])
-              : String(error.errors.message);
+            const message = Array.isArray(error.errors.message)
+              ? error.errors.message[0]
+              : error.errors.message;
+            if (message && typeof message === 'string') {
+              errorMsg = message;
+            }
           } else if (error.errors.error) {
             // Handle the specific error format we're seeing
-            errorMsg = Array.isArray(error.errors.error)
-              ? String(error.errors.error[0])
-              : String(error.errors.error);
+            const errorDetail = Array.isArray(error.errors.error)
+              ? error.errors.error[0]
+              : error.errors.error;
+            if (errorDetail && typeof errorDetail === 'string') {
+              errorMsg = errorDetail;
+            }
           } else if (typeof error.errors === 'string') {
             errorMsg = error.errors;
           }
         } else if (error.message && error.message !== 'Request failed') {
           errorMsg = error.message;
-        }
-
-        // Add status code to error message for debugging
-        if (error.status) {
-          errorMsg = `[${error.status}] ${errorMsg}`;
         }
       } else if (error instanceof Error) {
         errorMsg = error.message;
@@ -262,32 +269,34 @@ export class UserListService {
     } catch (error) {
       let errorMsg = 'Failed to remove document from list';
       if (error instanceof ApiError) {
-        // Try to extract the most meaningful error message
-        // The error.errors might be the raw response data from the backend
+        // Try to extract the most meaningful error message from backend response
         if (error.errors && typeof error.errors === 'object') {
           // Check if it's the raw response structure
           if (error.errors.detail && Array.isArray(error.errors.detail)) {
             const detail = error.errors.detail[0];
-            errorMsg = (typeof detail === 'string' ? detail : String(detail)) || errorMsg;
+            if (detail && typeof detail === 'string') {
+              errorMsg = detail;
+            }
           } else if (error.errors.message) {
-            errorMsg = Array.isArray(error.errors.message)
-              ? String(error.errors.message[0])
-              : String(error.errors.message);
+            const message = Array.isArray(error.errors.message)
+              ? error.errors.message[0]
+              : error.errors.message;
+            if (message && typeof message === 'string') {
+              errorMsg = message;
+            }
           } else if (error.errors.error) {
             // Handle the specific error format we're seeing
-            errorMsg = Array.isArray(error.errors.error)
-              ? String(error.errors.error[0])
-              : String(error.errors.error);
+            const errorDetail = Array.isArray(error.errors.error)
+              ? error.errors.error[0]
+              : error.errors.error;
+            if (errorDetail && typeof errorDetail === 'string') {
+              errorMsg = errorDetail;
+            }
           } else if (typeof error.errors === 'string') {
             errorMsg = error.errors;
           }
         } else if (error.message && error.message !== 'Request failed') {
           errorMsg = error.message;
-        }
-
-        // Add status code to error message for debugging
-        if (error.status) {
-          errorMsg = `[${error.status}] ${errorMsg}`;
         }
       } else if (error instanceof Error) {
         errorMsg = error.message;
@@ -338,32 +347,6 @@ export class UserListService {
       });
     } catch (error) {
       let errorMsg = 'Failed to remove permission';
-      if (error instanceof ApiError) {
-        errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
-      } else if (error instanceof Error) {
-        errorMsg = error.message;
-      }
-      throw new UserListError(errorMsg);
-    }
-  }
-
-  /**
-   * Reorders documents in a list
-   * @param listId - The ID of the list
-   * @param documentIds - Array of document IDs in the desired order
-   * @throws {UserListError} When the request fails or parameters are invalid
-   */
-  static async reorderListDocuments(listId: string, documentIds: ID[]): Promise<void> {
-    if (!listId || !documentIds.length) {
-      throw new UserListError('Missing required parameters', 'INVALID_PARAMS');
-    }
-
-    try {
-      await ApiClient.patch(`${this.BASE_PATH}/${listId}/reorder/`, {
-        document_ids: documentIds,
-      });
-    } catch (error) {
-      let errorMsg = 'Failed to reorder list documents';
       if (error instanceof ApiError) {
         errorMsg = error.errors?.detail?.[0] || error.message || errorMsg;
       } else if (error instanceof Error) {

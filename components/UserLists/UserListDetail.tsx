@@ -20,7 +20,6 @@ import {
   Lock,
   Calendar,
   FileText,
-  AlertCircle,
   Plus,
   ExternalLink,
   Trash2,
@@ -39,41 +38,67 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
   const [isAddItemsModalOpen, setIsAddItemsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const {
-    list,
-    isLoading,
-    error,
-    updateList,
-    removeDocumentFromList,
-    reorderDocuments,
-    fetchList,
-    deleteList,
-  } = useUserList(listId);
+  const { list, isLoading, error, updateList, removeDocumentFromList, fetchList, deleteList } =
+    useUserList(listId);
 
   // Helper function to generate document links
   const getDocumentLink = (
     documentId: string | number | null | undefined,
-    documentType: string
+    documentType: string,
+    content?: any,
+    raw?: any
   ) => {
-    if (!documentId) return '#';
+    // Try to get the actual document ID from content first
+    let actualId = documentId;
 
-    const idString = String(documentId);
+    // Try multiple sources for the actual document ID
+    if (content?.id) {
+      actualId = content.id;
+    } else if (raw?.document_info?.id) {
+      actualId = raw.document_info.id;
+    } else if (raw?.paper_id) {
+      actualId = raw.paper_id;
+    } else if (raw?.u_doc_id) {
+      actualId = raw.u_doc_id;
+    } else if (raw?.unified_document) {
+      // If we have a unified document ID, try to extract the actual document ID
+      actualId = raw.unified_document;
+    }
 
-    switch (documentType) {
+    if (!actualId) {
+      console.warn('Document ID is missing for document type:', documentType);
+      return '#';
+    }
+
+    const idString = String(actualId);
+    const slug = content?.slug || raw?.document_info?.slug || '';
+
+    // Normalize document type to lowercase for comparison
+    const normalizedType = documentType.toLowerCase();
+
+    switch (normalizedType) {
       case 'paper':
-        return `/paper/${idString}`;
+        return slug ? `/paper/${idString}/${slug}` : `/paper/${idString}`;
       case 'post':
-        return `/post/${idString}`;
+        // Check if it's a question based on postType or content type
+        const isQuestion =
+          content?.postType === 'QUESTION' || raw?.document_info?.post_type === 'QUESTION';
+        if (isQuestion) {
+          return slug ? `/question/${idString}/${slug}` : `/question/${idString}`;
+        }
+        return slug ? `/post/${idString}/${slug}` : `/post/${idString}`;
       case 'note':
         return `/notebook/${idString}`;
       default:
+        console.warn('Unknown document type:', documentType);
         return '#';
     }
   };
 
   // Helper function to get document type icon
   const getDocumentTypeIcon = (documentType: string) => {
-    switch (documentType) {
+    const normalizedType = documentType.toLowerCase();
+    switch (normalizedType) {
       case 'paper':
         return <FileText className="h-4 w-4 text-blue-600" />;
       case 'post':
@@ -128,7 +153,6 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="error">
-          <AlertCircle className="h-4 w-4" />
           <div className="text-sm font-medium">{error.message || 'Failed to load list'}</div>
         </Alert>
       </div>
@@ -258,16 +282,6 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
-          {list.canAddDocuments && (
-            <Button
-              variant="outlined"
-              onClick={() => setIsAddItemsModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Items
-            </Button>
-          )}
         </div>
 
         {list.documents.length === 0 ? (
@@ -275,22 +289,39 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No items yet</h3>
             <p className="text-gray-600 mb-4">Start adding documents to your list</p>
-            <Button
-              variant="outlined"
-              onClick={() => setIsAddItemsModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Items
-            </Button>
           </div>
         ) : (
           <div className="space-y-3">
             {list.documents.map((document, index) => {
-              const documentLink = getDocumentLink(document.documentId, document.documentType);
-              const documentTitle = document.content?.title || `Document ${document.documentId}`;
+              // Try to get title from various possible sources
+              let documentTitle = `Document ${document.documentId}`;
+              const content = document.content as any;
+              const raw = document.raw;
+
+              const documentLink = getDocumentLink(
+                document.documentId,
+                document.documentType,
+                content,
+                raw
+              );
+
+              if (content?.title) {
+                documentTitle = content.title;
+              } else if (content?.paper_title) {
+                documentTitle = content.paper_title;
+              } else if (content?.name) {
+                documentTitle = content.name;
+              } else if (raw?.document_info?.title) {
+                documentTitle = raw.document_info.title;
+              } else if (raw?.document_info?.paper_title) {
+                documentTitle = raw.document_info.paper_title;
+              }
+
               const documentDescription =
-                (document.content as any)?.description ||
+                content?.description ||
+                content?.abstract ||
+                raw?.document_info?.description ||
+                raw?.document_info?.abstract ||
                 (document.addedAt && !isNaN(new Date(document.addedAt).getTime())
                   ? `Added ${new Date(document.addedAt).toLocaleDateString()}`
                   : '');
@@ -317,6 +348,11 @@ export const UserListDetail = ({ listId }: UserListDetailProps) => {
                           </div>
                           {documentDescription && (
                             <p className="text-sm text-gray-600 mt-1">{documentDescription}</p>
+                          )}
+                          {document.comment && (
+                            <p className="text-sm text-blue-600 mt-1 italic">
+                              "{document.comment}"
+                            </p>
                           )}
                         </div>
                       </div>

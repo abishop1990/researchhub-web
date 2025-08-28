@@ -71,6 +71,7 @@ export function useSearchSuggestions({
     const fetchSuggestions = async () => {
       if (!query || query.length < minQueryLength) {
         setApiSuggestions([]);
+        setLoading(false);
         return;
       }
 
@@ -97,7 +98,7 @@ export function useSearchSuggestions({
       mounted = false;
       clearTimeout(debounceTimer);
     };
-  }, [query, indices, minQueryLength, debounceMs]);
+  }, [query, minQueryLength]); // Remove indices from dependency array since it's constant
 
   // Combine suggestions, prioritizing local results if enabled
   const suggestions = useMemo(() => {

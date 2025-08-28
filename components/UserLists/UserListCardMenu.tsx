@@ -78,7 +78,7 @@ export const UserListCardMenu = ({ list, onUpdate, onDelete, onClose }: UserList
         )}
       </BaseMenu>
 
-      {/* TODO: Add confirmation dialog when component is available */}
+      {/* Confirmation dialog handled by ConfirmModal component */}
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-md">

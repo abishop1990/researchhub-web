@@ -35,7 +35,6 @@ export const DocumentViewer = ({ url, className, onLoaded }: DocumentViewerProps
   }, [isLoading, onLoaded]);
 
   const handleReady = () => {
-    console.log('PDF ready, calling onLoaded callback');
     setTimeout(() => {
       setIsLoading(false);
       if (onLoaded) {
@@ -45,8 +44,30 @@ export const DocumentViewer = ({ url, className, onLoaded }: DocumentViewerProps
   };
 
   const handleError = (error: any) => {
-    console.error('PDF loading error:', error);
-    setError('Failed to load PDF document');
+    let errorMessage = 'Failed to load PDF document';
+
+    // Provide more specific error messages
+    if (error.message.includes('Cannot access PDF URL')) {
+      errorMessage =
+        'Cannot access PDF file. The file may not exist or you may not have permission to view it.';
+    } else if (error.message.includes('CORS')) {
+      errorMessage =
+        'PDF access blocked due to CORS policy. The file server does not allow cross-origin access.';
+    } else if (error.message.includes('NetworkError')) {
+      errorMessage = 'Network error while loading PDF. Please check your internet connection.';
+    } else if (error.message.includes('Invalid PDF')) {
+      errorMessage = 'The file is not a valid PDF document.';
+    } else if (
+      error.message.includes('UnexpectedResponseException') ||
+      error.message.includes('403')
+    ) {
+      errorMessage =
+        'Access denied to PDF file. The file may require authentication or the proxy server is blocking access.';
+    } else if (error.message.includes('404')) {
+      errorMessage = 'PDF file not found. The file may have been moved or deleted.';
+    }
+
+    setError(errorMessage);
     setIsLoading(false);
     if (onLoaded) {
       onLoaded();
